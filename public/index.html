@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Chat app | Home</title>
+  <style>
+    #messages {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      min-height: 70vh;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    #messages > li {
+      padding: 0.5rem 1rem;
+    }
+    /* #messages > li:nth-child(odd) {
+      background: #efefef;
+    } */
+    .chat-bubble{
+      /* box-shadow: 2px 2px 1px -1px #ddd  */;
+      display: inline-flex;
+      font-size: .75rem;
+      border-radius: 8px;
+      max-width: 80%;
+      border: 1px solid #ddd;
+    }
+    .chat-bubble.sender{
+      justify-content: flex-end;
+      background: #eeffee55;
+      margin-left: auto;
+    }
+    .chat-bubble.recipient {
+      margin-right: auto;
+      background: #eedddd55;
+    }
+    [v-cloak]{
+      display:block;
+      color:#ccc;
+      height: 45px;
+      background: #ccc;
+      position: relative;
+      opacity:.5;
+    }
+  </style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.0.4/tailwind.min.css" title="tailwindcss cdn" type="text/css" />
+  <!-- <base href="../" /> -->
+  </head>
+<body>
+  <main id="app">
+    <form @submit.prevent="sendMessage" class="min-h-screen" method="get" accept-charset="utf-8">
+      <section class="p-3 pb-6 bg-gray-100 flex flex-col">
+        <ul id="messages" class="gap-3 flex flex-col">
+          <li v-cloak :class="[message.type, 'chat-bubble flex-grow-0']" v-for="message in messages" :key="message.id">
+            {{message.body}}
+          </li>
+          <li v-cloak v-show="typing" class="recipient chat-bubble">typing...</li>
+        </ul>
+      </section>
+      <section class="sticky bottom-0 flex items-center border border-gray-200 bg-white">
+        <input type="text" v-model="message" @keyup="userTyping" name="chat-message" id="chat-message" value="" class="flex-grow p-3 border-none  focus:outline-none" placeholder="Message" />
+        <input type="submit" name="chat-send" id="chat-send" class="p-3 bg-transparent focus:outline-none font-medium" value="Send" />
+      </section>
+    </form>
+  </main>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+  </script>
+  <script src="js/vue.js" type="text/javascript" charset="utf-8"></script>
+  <script type="text/javascript" charset="utf-8">
+    var socket = io();
+
+    var app = new Vue({
+      el: '#app',
+      data() {
+        return {
+          message: '',
+          messages: [],
+          typing: false
+        }
+      },
+      mounted() {
+        socket.on('chat message', (msg) => {
+          this.typing = false;
+          this.messages.push(msg);
+           window.scrollTo(0, document.body.scrollHeight);
+        });
+        socket.on('user-typing', () => {
+          this.typing = true;
+        });
+      },
+      methods: {
+        userTyping({target}){
+          if(target.value)
+          socket.emit('user-typing');
+        },
+        uuid() {
+          return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+            var r = (Math.random() * 16) | 0,
+            v = c == "x" ? r: (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
+        },
+        sendMessage({ target }) {
+          socket.emit('chat message', this.message);
+          this.messages.push({
+            id: this.uuid(),
+            body: this.message,
+            type: 'sender'
+          })
+          this.message = '';
+        }
+      }
+    })
+
+  </script>
+</body>
+</html>
