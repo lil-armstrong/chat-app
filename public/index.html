@@ -1,122 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Chat app | Home</title>
-  <style>
-    #messages {
-      list-style-type: none;
-      margin: 0;
-      padding: 0;
-      min-height: 70vh;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-    #messages > li {
-      padding: 0.5rem 1rem;
-    }
-    /* #messages > li:nth-child(odd) {
-      background: #efefef;
-    } */
-    .chat-bubble{
-      /* box-shadow: 2px 2px 1px -1px #ddd  */;
-      display: inline-flex;
-      font-size: .75rem;
-      border-radius: 8px;
-      max-width: 80%;
-      border: 1px solid #ddd;
-    }
-    .chat-bubble.sender{
-      justify-content: flex-end;
-      background: #eeffee55;
-      margin-left: auto;
-    }
-    .chat-bubble.recipient {
-      margin-right: auto;
-      background: #eedddd55;
-    }
-    [v-cloak]{
-      display:block;
-      color:#ccc;
-      height: 45px;
-      background: #ccc;
-      position: relative;
-      opacity:.5;
-    }
-  </style>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.0.4/tailwind.min.css" title="tailwindcss cdn" type="text/css" />
-  <!-- <base href="../" /> -->
-  </head>
-<body>
-  <main id="app">
-    <form @submit.prevent="sendMessage" class="min-h-screen" method="get" accept-charset="utf-8">
-      <section class="p-3 pb-6 bg-gray-100 flex flex-col">
-        <ul id="messages" class="gap-3 flex flex-col">
-          <li v-cloak :class="[message.type, 'chat-bubble flex-grow-0']" v-for="message in messages" :key="message.id">
-            {{message.body}}
-          </li>
-          <li v-cloak v-show="typing" class="recipient chat-bubble">typing...</li>
-        </ul>
-      </section>
-      <section class="sticky bottom-0 flex items-center border border-gray-200 bg-white">
-        <input type="text" v-model="message" @keyup="userTyping" name="chat-message" id="chat-message" value="" class="flex-grow p-3 border-none  focus:outline-none" placeholder="Message" />
-        <input type="submit" name="chat-send" id="chat-send" class="p-3 bg-transparent focus:outline-none font-medium" value="Send" />
-      </section>
-    </form>
-  </main>
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-  </script>
-  <script src="js/vue.js" type="text/javascript" charset="utf-8"></script>
-  <script type="text/javascript" charset="utf-8">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Chat app | Home</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.0.4/tailwind.min.css" title="tailwindcss cdn" type="text/css" />
+    <link rel="stylesheet" href="stylesheet/chat.css" />
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 768px;
+            margin: 0 auto;
+            min-height: 100vh;
+            max-height: 100vh;
+        }    
+    </style>
+    <!-- <base href="../" /> -->
+</head>
+
+<body class="bg-gray-100">
+    <section id="app" class="lg:grid lg:grid-cols-5">
+        <aside :class="{'full': sidebar}" id="chat-sidebar" class="lg:col-span-1 z-10 lg:relative absolute left-0  h-full bg-gray-200 min-h-screen overflow-y-auto max-h-screen"></aside>
+        <main class="col-span-4 min-h-screen max-h-screen relative z-0">
+            <section id="messages" class="relative h-full flex-grow">
+                <ul class="gap-3 flex flex-col p-2">
+                    <li v-cloak :class="[message.type, 'chat-bubble flex-grow-0 mx-3']" v-for="message in messages" :key="message.id">
+                        {{message.body}}
+                    </li>
+                    <li v-cloak v-show="typing" class="recipient chat-bubble mx-3">typing...</li>
+                </ul>
+            </section>
+            <form @submit.prevent="sendMessage" class="sticky bottom-0" method="get" accept-charset="utf-8">
+                <section class="flex items-center rounded border border-gray-200 bg-white">
+                    <input type="text" v-focus v-model="message" @keydown="isTyping" @blur="notTyping" name="chat-message" id="chat-message" value="" class="flex-grow p-3 px-4 border-none  focus:outline-none rounded" placeholder="Message" />
+                    <button type="submit" name="chat-send" id="chat-send" class="p-3 text-gray-400 rounded hover:bg-green-600 hover:text-white text-green-600 transition duration-75 px-5 bg-transparent focus:outline-none font-medium" value="Send">
+                        <svg width="33" height="31" viewBox="0 0 33 31" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M30.1666 15.846L2 2.84601L6.33343 14.7627L23.8832 15.846L6.33343 16.9293L2 28.846L30.1666 15.846Z" fill="currentColor" />
+                        </svg>
+                    </button>
+                </section>
+            </form>
+        </main>
+        <div class="fixed right-0 bottom-0 z-10 mb-20 m-3 flex flex-col gap-3">
+            <button @click.stop="toggleSidebar" title="toggle sidebar" class="shadow lg:hidden p-3 block bg-white rounded-full h-10 w-10  left-0">
+            </button>
+            <button v-show-on-scroll title="scroll to bottom of chat" @click.stop="scrollToBottom" class="m-auto overflow-hidden h-10 w-10 self-end right-0 p-3 bg-white hover:bg-gray-200 bottom-0 shadow text-gray-400 rounded-full border border-gray-300">
+                <img src="image/down-arrow.svg" class="object-contain w-full h-full" alt="down-arrow-icon">
+            </button>
+        </div>
+    </section>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+    </script>
+    <script src="js/vue.js" type="text/javascript" charset="utf-8"></script>
+    <script type="text/javascript" charset="utf-8">
     var socket = io();
 
     var app = new Vue({
-      el: '#app',
-      data() {
-        return {
-          message: '',
-          messages: [],
-          typing: false
-        }
-      },
-      mounted() {
-        socket.on('chat message', (msg) => {
-          this.typing = false;
-          this.messages.push(msg);
-           window.scrollTo(0, document.body.scrollHeight);
-        });
-        socket.on('user-typing', () => {
-          this.typing = true;
-        });
-      },
-      methods: {
-        userTyping({target}){
-          if(target.value)
-          socket.emit('user-typing');
+        el: '#app',
+        data() {
+            return {
+                message: '',
+                messages: [],
+                typing: false,
+                sidebar: false
+            }
         },
-        uuid() {
-          return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-            var r = (Math.random() * 16) | 0,
-            v = c == "x" ? r: (r & 0x3) | 0x8;
-            return v.toString(16);
-          });
-        },
-        sendMessage({ target }) {
-          socket.emit('chat message', this.message);
-          this.messages.push({
-            id: this.uuid(),
-            body: this.message,
-            type: 'sender'
-          })
-          this.message = '';
-        }
-      }
-    })
+        directives: {
+            focus: {
+                inserted(el) {
+                    el.focus();
+                }
+            },
+            showOnScroll: {
+                inserted(el) {
+                    el.style.display = 'none';
+                    let messages = document.getElementById('messages');
+                    let timeout = null;
+                    window.addEventListener('scroll', () => {
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => {
+                            if (window.scrollMaxY - window.scrollY) {
+                                el.style.display = 'block';
+                            } else
+                                el.style.display = 'none';
 
-  </script>
+                        }, 500);
+                    });
+                }
+            }
+        },
+        computed: {
+
+        },
+        mounted() {
+            socket.on('chat-message', (msg) => {
+                this.typing = false;
+                this.messages.push(msg);
+                this.scrollToBottom();
+            });
+            socket.on('is-typing', () => {
+                this.typing = true;
+                this.scrollToBottom();
+            });
+            socket.on('not-typing', () => {
+                this.typing = false;
+            });
+        },
+        methods: {
+            toggleSidebar() {
+                this.sidebar = !this.sidebar;
+            },
+            scrollToBottom() {
+                window.scrollTo(0, document.body.scrollHeight);
+            },
+            isTyping({ target }) {
+                if (target.value)
+                    socket.emit('is-typing');
+            },
+            notTyping({ target }) {
+                if (target.value)
+                    socket.emit('not-typing');
+            },
+            uuid() {
+                return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+                    var r = (Math.random() * 16) | 0,
+                        v = c == "x" ? r : (r & 0x3) | 0x8;
+                    return v.toString(16);
+                });
+            },
+            sendMessage({ target }) {
+                if (this.message.trim()) {
+                    socket.emit('chat-message', this.message);
+                    this.messages.push({
+                        id: this.uuid(),
+                        body: this.message,
+                        type: 'sender'
+                    })
+                    this.message = '';
+                    this.scrollToBottom();
+                }
+            }
+        }
+    })
+    </script>
 </body>
+
 </html>
